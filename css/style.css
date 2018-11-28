@@ -1,0 +1,77 @@
+* {
+ margin: 0;
+ padding: 0;
+ outline: none;
+ font-family: sans-serif;
+ box-sizing: border-box;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+}
+
+html {
+ background-color: #eeeeee;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+#draw {
+  position: relative;
+  border: none;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+#result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  height: 100px;
+  width: 50px;
+}
+
+#button-box {
+  max-width: 560px;
+}
+
+#button-box button {
+  width: 50px;
+  height: 50px;
+}
+
+#button-box button:active {
+  border: 1px solid green;
+}
+
+#recognize,
+#clear {
+  width: 200px;
+  height: 50px;
+}
+
+#log {
+  padding: 16px;
+}
+
+button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+  margin: 3px;
+}
