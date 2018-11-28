@@ -75,3 +75,8 @@ button {
   transition: border-color 0.2s;
   margin: 3px;
 }
+
+a {
+  color: black;
+  text-decoration: none;
+}
