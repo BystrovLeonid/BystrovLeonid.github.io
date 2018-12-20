@@ -351,6 +351,12 @@ document.addEventListener('DOMContentLoaded', function () {
     //
     log.textContent = '';
 
+    // Массив индексов примеров, будет перемешиваться в процесе обучения,
+    // что сеть обучалась на примерах идущих в разном порядке.
+    let pos = Array.apply(null, {
+      length: imagesSet.length
+    }).map(Number.call, Number);
+
     // Обучение.
     do {
       // 
@@ -358,6 +364,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // В начале цикла обучения глобальная ошибка равна нулю.
       gError = 0;
+
+      // Перемешать индексы примеров для обучения.
+      pos.sort( () => Math.random() - Math.random() );
 
       // Пройтись по всем образам в обучающем наборе.
       for (let s = 0; s < imagesSet.length; s++) {
@@ -368,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Прямое прохождение сигнала.
         for (let n = 0; n < C.length; n++) {
           for (let i = 0; i < mW * mH; i++) {
-            result[n] += imagesSet[s][i] * w[i + mW * mH * n];
+            result[n] += imagesSet[pos[s]][i] * w[i + mW * mH * n];
           }
           // Функция активации:
           // если отклик нейрона на образ больше порога активации
@@ -379,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Настройка весов.
         for (let n = 0; n < C.length; n++) {
           // 
-          if (imagesSetAnswer[s][n] == result[n]) {
+          if (imagesSetAnswer[pos[s]][n] == result[n]) {
             // Ответ правильный, обучение не требуется.
 
             continue;
@@ -387,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Ответ не правильный.
 
             // Вычисление локальной ошибки сети.
-            let lError = imagesSetAnswer[s][n] - result[n];
+            let lError = imagesSetAnswer[pos[s]][n] - result[n];
 
             // Вычисление глобальной ошибки сети.
             // Обязательно прибавлять абсолютное значение,
@@ -401,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function () {
               // соответствущий элемент входного образа
               // умноженный на локальную ошибку сети и
               // умноженный на скорость обучения.
-              w[i + mW * mH * n] += imagesSet[s][i] * lError * learningRate;
+              w[i + mW * mH * n] += imagesSet[pos[s]][i] * lError * learningRate;
             }
           }
         }
