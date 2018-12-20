@@ -80,3 +80,9 @@ a {
   color: black;
   text-decoration: none;
 }
+
+@media screen and (max-width: 560px) {
+  #button-box {
+    width: 320px;
+  }
+}
