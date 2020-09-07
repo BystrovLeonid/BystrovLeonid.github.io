@@ -1,6 +1,7 @@
 'use strict';
 
 importScripts('commands.js');
+importScripts('matrix.js');
 
 // Образ - нарисованное изображение,
 // что-то что изображает что либо,
@@ -40,7 +41,7 @@ let limit = 1000;
 let learningRate = 0.01;
 
 //
-onmessage = function (e) {
+onmessage = e => {
 
   let command = e.data[0];
   let data = e.data.splice(1);
