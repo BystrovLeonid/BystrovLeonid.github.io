@@ -1,9 +1,52 @@
-'use strict'
+'use strict';
 
-// Образ - нарисованное изображение,
-// что-то что изображает что либо,
-// что перцептрон способен распознать.
+//
+let olp = new Worker("js/olp.js");
 
+//
+olp.onmessage = e => {
+
+  //
+  let command = e.data[0];
+  let data = e.data.splice(1);
+
+  //
+  switch (command) {
+    case Commands.TESTRESULT: {
+
+      // Индекс распознанного образа.
+      let imageIndex = data;
+
+      //
+      if (imageIndex > -1) {
+        // Показать распознанный образ.
+        result.innerHTML = C[imageIndex];
+
+        // Подсветить соответствующую кнопку.
+        teach.children[imageIndex].style.borderColor = '#0000ee';
+
+        setTimeout(() => {
+          teach.children[imageIndex].style.borderColor = 'transparent';
+        }, 1000);
+      } else {
+
+        //
+        result.innerHTML = '?';
+      }
+      break;
+    }
+    case Commands.LOG: {
+
+      //
+      log.innerHTML = data;
+      break;
+    }
+  }
+};
+
+// 
+// const C = Array(10).fill(0).map((_, i) => i);
+const C = ['&#9723;', '&#9711;', '&#9651;'];
 
 // Кнопки, нажатие на кнопку обучает перцептрон
 // конкретному образу.
@@ -41,43 +84,6 @@ let b = 0; // Bottom
 
 // Ширина линии рисования.
 const lw = 20;
-
-
-// Символьные представления распознаваемых образов.
-// 10 классов образов: числа 0-9
-// Количество нейронов в сети тоже 10,
-// по одному нейрону на каждый класс образов.
-// Каждый нейрон должен активироваться только на тот образ,
-// чей индекс он имеет.
-// Например нейрон с индексом 0 должен активироваться
-// только если нарисован ноль,
-// и не должен активироваться на любую другую цифру.
-const C = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-// const C = Array.apply(null, {length: 30}).map(Number.call, Number);
-// const C = ['&#9723;', '&#9711;', '&#9651;'];
-// const C = ['x', 'o'];
-
-
-// Веса перцептрона.
-let w = [];
-
-// Полученные образы и правильные ответы на них.
-let imagesSet = [];
-let imagesSetAnswer = [];
-
-// Максимальное количество циклов обучения.
-let limit = 1000;
-
-// Скорость обучения.
-// Подбирается опытным путём.
-// Если слишком маленькая то сеть будет долго обучаться,
-// и алгоритм градиентного спуска может попасть в локальный минимум,
-// (проще говоря, сеть может не обучится, застряв в одной точке).
-// Если слишком большая то сеть будет обучаться слишком быстро и
-// и может так и не обучиться новому образу и/или забыть старый.
-// (может проскочить точку глобального минимума).
-let learningRate = 0.01;
-
 
 // Получить чёрно-белое изображение образа 8 бит.
 function blackAndWhite8bit() {
@@ -140,22 +146,12 @@ function selectionRect(lineColor) {
   );
 }
 
-// Возвращает максимальный элемент массива.
-function getMaxOfArray(numArray) {
-  return Math.max.apply(null, numArray);
-}
-
-// Возвращает массив указанной длины, заполненный нулями.
-function getArrayOfZeros(arrayLength) {
-  return Array
-    .apply(null, Array(arrayLength))
-    .map(Number.prototype.valueOf, 0);
-}
-
-
 //
 document.addEventListener('DOMContentLoaded', function () {
   // Настройка.
+
+  // Инициализировать перцетрон.
+  olp.postMessage([Commands.INITIALIZE, 30, 30, C.length]);
 
   // Добавить кнопки с символьными представлениями образов.
   for (let i = 0; i < C.length; i++) {
@@ -163,16 +159,11 @@ document.addEventListener('DOMContentLoaded', function () {
       `<button data-image-index="${i}">${C[i]}</button>`;
   }
 
-  // Инициализация весов случайными значениями от 0 до 1.
-  for (let i = 0; i < mW * mH * C.length; i++) {
-    w.push(Math.random());
-  }
-
   // Задать ширину и высоту окна рисования.
   draw.width = W;
   draw.height = W;
 
-  // Задать ширину и высоту preview. (Не обязательно)
+  // Задать ширину и высоту preview.
   preview.width = mW;
   preview.height = mH;
 
@@ -210,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
     t = Math.min(t, y);
     b = Math.max(b, y);
   }
-  draw.addEventListener('mousemove', function (e) {
+  draw.addEventListener('mousemove', e => {
     if (e.buttons > 0) {
       drawLine(
         e.layerX,
@@ -218,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
       );
     }
   });
-  draw.addEventListener('touchmove', function (e) {
+  draw.addEventListener('touchmove', e => {
     if (e.touches.length > 0) {
       drawLine(
         e.touches[0].clientX - draw.getBoundingClientRect().left,
@@ -263,42 +254,13 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Массив ответов сети по количеству нейронов/классов образов.
-    // изначально      [0, 0, 0, ...
-    // индекс нейрона   0  1  2  ...
-    let results = getArrayOfZeros(C.length);
-
-    // Прямое прохождение сигнала.
-    //
-    // Полученный образ распространяется на каждый нейрон сети,
-    for (let n = 0; n < C.length; n++) {
-      // Вычисляется отклик нейрона на полученный образ.
-      // Каждый элемент весовых коэффицентов w[i]
-      // умножается на каждый элемент входного образа bw[i]
-      // все произведения суммируется.
-      for (let i = 0; i < mW * mH; i++) {
-        results[n] += bw[i] * w[i + mW * mH * n];
-      }
-    }
-
-    // Получаем индекс максимального значения из массива.
-    // Это индекс нейрона который дал наибольший отклик.
-    let imageIndex = results.indexOf(getMaxOfArray(results));
-
-    // Показать распознанный образ.
-    result.innerHTML = C[imageIndex];
-
-    // Подсветить соответствующую кнопку.
-    teach.children[imageIndex].style.borderColor = '#0000ee';
-    setTimeout(() => {
-      teach.children[imageIndex].style.borderColor = 'transparent';
-    }, 1000);
-
+    olp.postMessage([Commands.TEST, bw]);
+    
   }); // Кнопка распознать.
 
 
   // Обучение.
-  teach.addEventListener('click', function (e) {
+  teach.addEventListener('click', e => {
 
     //
     let imageIndex;
@@ -327,122 +289,10 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    olp.postMessage([Commands.TRAIN, bw, imageIndex]);
 
-    // Массив заполненный нулями, длина массива равна
-    // количесиву нейронов/классов образов.
-    let correct = getArrayOfZeros(C.length);
+    clear();
 
-    // Правильный ответ.
-    // Присвоить по индексу нейрона единицу, 
-    // этот нейрон должен дать отклик на полученный образ.
-    correct[imageIndex] = 1;
-
-    // Добавить новый образ в обучающий набор.
-    imagesSet.push(bw);
-    imagesSetAnswer.push(correct);
-
-    // Глобальная ошибка, сумма всех локальных ошибок.
-    // Её и будем минимизировать, до нуля.
-    let gError = 0;
-
-    // Цикл обучения.
-    let ep = 0;
-
-    //
-    log.textContent = '';
-
-    // Массив индексов примеров, будет перемешиваться в процесе обучения,
-    // что сеть обучалась на примерах идущих в разном порядке.
-    let pos = Array.apply(null, {
-      length: imagesSet.length
-    }).map(Number.call, Number);
-
-    // Обучение.
-    do {
-      // 
-      ep++;
-
-      // В начале цикла обучения глобальная ошибка равна нулю.
-      gError = 0;
-
-      // Перемешать индексы примеров для обучения.
-      pos.sort( () => Math.random() - Math.random() );
-
-      // Пройтись по всем образам в обучающем наборе.
-      for (let s = 0; s < imagesSet.length; s++) {
-
-        // Ответы сети.
-        let result = getArrayOfZeros(C.length);
-
-        // Прямое прохождение сигнала.
-        for (let n = 0; n < C.length; n++) {
-          for (let i = 0; i < mW * mH; i++) {
-            result[n] += imagesSet[pos[s]][i] * w[i + mW * mH * n];
-          }
-          // Функция активации:
-          // если отклик нейрона на образ больше порога активации
-          // то нейрон активируется.
-          result[n] = result[n] > 0.5 ? 1 : 0;
-        }
-
-        // Настройка весов.
-        for (let n = 0; n < C.length; n++) {
-          // 
-          if (imagesSetAnswer[pos[s]][n] == result[n]) {
-            // Ответ правильный, обучение не требуется.
-
-            continue;
-          } else {
-            // Ответ не правильный.
-
-            // Вычисление локальной ошибки сети.
-            let lError = imagesSetAnswer[pos[s]][n] - result[n];
-
-            // Вычисление глобальной ошибки сети.
-            // Обязательно прибавлять абсолютное значение,
-            // поскольку ошибка может быть отрицательной или положительной.
-            // Здесь локальная ошибка может быть -1 или 1.
-            gError += Math.abs(lError);
-
-            // Корректировка весов нейрона с индексом n.
-            for (let i = 0; i < mW * mH; i++) {
-              // К каждому весовому коэффиценту прибавляется 
-              // соответствущий элемент входного образа
-              // умноженный на локальную ошибку сети и
-              // умноженный на скорость обучения.
-              w[i + mW * mH * n] += imagesSet[pos[s]][i] * lError * learningRate;
-            }
-          }
-        }
-      }
-
-      //
-      log.textContent = `Цикл: ${ep}, глобальная ошибка: ${gError}\n`;
-
-      // Выполнять обучение до тех пор пока сеть не будет ошибаться,
-      // или не выйдет за лимит обучения.
-    } while (gError > 0 && ep < limit);
-
-
-    if (ep == limit) {
-      // Сеть не обучилась новому образу.
-
-      //
-      log.textContent = `Ошибка. Конфликтный образ, не обучен!`;
-
-      // Удалить конфликтный образ из набора.
-      imagesSet.pop();
-      imagesSetAnswer.pop();
-    } else {
-      // Сеть обучилась новому образу.
-
-      //
-      clear();
-
-      //
-      log.textContent =
-        `Обучен, циклы: ${ep}, количество примеров: ${imagesSet.length}`;
-    }
   }); // Обучение.
 
 }); // DOMContentLoaded
