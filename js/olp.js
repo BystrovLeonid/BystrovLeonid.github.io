@@ -7,28 +7,15 @@ importScripts('matrix.js');
 // что-то что изображает что либо,
 // что перцептрон способен распознать.
 
-// Символьные представления распознаваемых образов.
-// 10 классов образов: числа 0-9
-// Количество нейронов в сети тоже 10,
-// по одному нейрону на каждый класс образов.
-// Каждый нейрон должен активироваться только на тот образ,
-// чей индекс он имеет.
-// Например нейрон с индексом 0 должен активироваться
-// только если нарисован ноль,
-// и не должен активироваться на любую другую цифру.
-let C = 0;
-
 // Веса перцептрона.
-let w = [];
-let Ww = 0;
-let Wh = 0;
+let Weights = null;
 
 // Полученные образы и правильные ответы на них.
-let imagesSet = [];
-let imagesSetAnswer = [];
+let X = [];
+let Y = [];
 
 // Максимальное количество циклов обучения.
-let limit = 1000;
+let Limit = 1000;
 
 // Скорость обучения.
 // Подбирается опытным путём.
@@ -38,179 +25,131 @@ let limit = 1000;
 // Если слишком большая то сеть будет обучаться слишком быстро и
 // и может так и не обучиться новому образу и/или забыть старый.
 // (может проскочить точку глобального минимума).
-let learningRate = 0.01;
+let LearningRate = 0.01;
 
-//
+// Обработка сообщений от управляющего скрипта.
 onmessage = e => {
 
-  let command = e.data[0];
-  let data = e.data.splice(1);
-
-  switch (command) {
+  switch (e.data.Command) {
     case Commands.INITIALIZE: {
 
-      //
-      [Ww, Wh, C] = [...data];
-
       // Инициализация весов случайными значениями от 0 до 1.
-      w = Array(Ww * Wh * C).fill(0).map(() => Math.random());
+      Weights = new Matrix({
+        rows: e.data.Inputs,
+        cols: e.data.Outputs,
+        fill: Math.random
+      });
 
       break;
     }
     case Commands.TEST: {
 
-      //
-      let bw = data[0];
-
-      // Массив ответов сети по количеству нейронов/классов образов.
-      // изначально      [0, 0, 0, ...
-      // индекс нейрона   0  1  2  ...
-      let results = Array(C).fill(0);
-
-
       // Прямое прохождение сигнала.
-      //
-      // Полученный образ распространяется на каждый нейрон сети,
-      for (let n = 0; n < C; n++) {
-        // Вычисляется отклик нейрона на полученный образ.
-        // Каждый элемент весовых коэффицентов w[i]
-        // умножается на каждый элемент входного образа bw[i]
-        // все произведения суммируется.
-        for (let i = 0; i < Ww * Wh; i++) {
-          results[n] += bw[i] * w[i + Ww * Wh * n];
-        }
-      }
-
-      // Получаем индекс максимального значения из массива.
-      // Это индекс нейрона который дал наибольший отклик.
-      let imageIndex = results.indexOf(Math.max(...results));
-
-      //
-      postMessage([
-        Commands.TESTRESULT, 
-        imageIndex
-      ]);
+      // Массив ответов сети по количеству нейронов/классов образов.
+      postMessage({
+        Command: Commands.TESTRESULT,
+        result: multiplyMatrixByMatrix(e.data.X, Weights)
+      });
 
       break;
     }
-
     case Commands.TRAIN: {
 
-      //
-      let [bw, imageIndex] = [...data];
-
-      // Массив заполненный нулями, длина массива равна
-      // количесиву нейронов/классов образов.
-      let correct = Array(C).fill(0);
-
-      // Правильный ответ.
-      // Присвоить по индексу нейрона единицу, 
-      // этот нейрон должен дать отклик на полученный образ.
-      correct[imageIndex] = 1;
-
       // Добавить новый образ в обучающий набор.
-      imagesSet.push(bw);
-      imagesSetAnswer.push(correct);
+      X.push(e.data.X);
+      Y.push(e.data.Y);
 
       // Глобальная ошибка, сумма всех локальных ошибок.
       // Её и будем минимизировать, до нуля.
-      let gError = 0;
+      let globalError = 0;
 
       // Цикл обучения.
-      let ep = 0;
+      let trainCycle = 0;
 
       // Массив индексов примеров, будет перемешиваться в процесе обучения,
-      // что сеть обучалась на примерах идущих в разном порядке.
-      let pos = Array(imagesSet.length).fill(0).map((_, i) => i);
+      // что бы сеть обучалась на примерах идущих каждый раз в разном порядке.
+      let samplePosition = Array(X.length).fill(0).map((_, i) => i);
 
       // Обучение.
       do {
-        // 
-        ep++;
+
+        trainCycle++;
 
         // В начале цикла обучения глобальная ошибка равна нулю.
-        gError = 0;
+        globalError = 0;
 
         // Перемешать индексы примеров для обучения.
-        pos.sort(() => Math.random() - Math.random());
+        samplePosition.sort(() => Math.random() - Math.random());
 
         // Пройтись по всем образам в обучающем наборе.
-        for (let s = 0; s < imagesSet.length; s++) {
-
-          // Ответы сети.
-          let result = Array(C).fill(0);
+        for (let s = 0; s < X.length; s++) {
 
           // Прямое прохождение сигнала.
-          for (let n = 0; n < C; n++) {
-            for (let i = 0; i < Ww * Wh; i++) {
-              result[n] += imagesSet[pos[s]][i] * w[i + Ww * Wh * n];
-            }
-            // Функция активации:
-            // если отклик нейрона на образ больше порога активации
-            // то нейрон активируется.
-            result[n] = result[n] > 0.5 ? 1 : 0;
-          }
+          let result = multiplyMatrixByMatrix(X[samplePosition[s]], Weights);
+
+          // Функция активации:
+          // если отклик нейрона на образ больше порога активации
+          // то нейрон активируется.
+          result.data.forEach((e, i) => result.data[i] = e > 0.5 ? 1 : 0);
+
+
+          // Локальная ошибка, используется для коррекции весов сети.
+          let localError = substractMatrixFromMatrix(e.data.Y, result);
+
+          globalError = localError.data.reduce((a, b) => a + Math.abs(b), 0);
+
 
           // Настройка весов.
-          for (let n = 0; n < C; n++) {
-            // 
-            if (imagesSetAnswer[pos[s]][n] === result[n]) {
-              // Ответ правильный, обучение не требуется.
-
-              continue;
-            } else {
-              // Ответ не правильный.
-
-              // Вычисление локальной ошибки сети.
-              let lError = imagesSetAnswer[pos[s]][n] - result[n];
-
-              // Вычисление глобальной ошибки сети.
-              // Обязательно прибавлять абсолютное значение,
-              // поскольку ошибка может быть отрицательной или положительной.
-              // Здесь локальная ошибка может быть -1 или 1.
-              gError += Math.abs(lError);
-
-              // Корректировка весов нейрона с индексом n.
-              for (let i = 0; i < Ww * Wh; i++) {
-                // К каждому весовому коэффиценту прибавляется 
-                // соответствущий элемент входного образа
-                // умноженный на локальную ошибку сети и
-                // умноженный на скорость обучения.
-                w[i + Ww * Wh * n] +=
-                  imagesSet[pos[s]][i] * lError * learningRate;
-              }
-            }
-          }
+          // К каждому весовому коэффиценту прибавляется 
+          // соответствущий элемент входного образа
+          // умноженный на локальную ошибку сети и
+          // умноженный на скорость обучения.
+          Weights =
+            appendMatrixToMatrix(
+              Weights,
+              multiplyMatrixByNumber(
+                multiplyMatrixByMatrix(
+                  e.data.X,
+                  localError,
+                  true
+                ),
+                LearningRate
+              )
+            );
         }
 
-        //
-        // log.textContent = `Цикл: ${ep}, глобальная ошибка: ${gError}\n`;
+
+        postMessage({
+          Command: Commands.TRAINCYCLE,
+          globalError: globalError,
+          cycle: trainCycle
+        });
 
         // Выполнять обучение до тех пор пока сеть не будет ошибаться,
         // или не выйдет за лимит обучения.
-      } while (gError > 0 && ep < limit);
+      } while (globalError > 0 && trainCycle < Limit);
 
 
-      if (ep == limit) {
+      if (trainCycle === Limit) {
         // Сеть не обучилась новому образу.
 
-        //
-        postMessage([
-          Commands.LOG, 
-          `Ошибка. Конфликтный образ, не обучен!`
-        ]);
+        postMessage({
+          Command: Commands.TRAINRESULT,
+          result: false
+        });
 
         // Удалить конфликтный образ из набора.
-        imagesSet.pop();
-        imagesSetAnswer.pop();
+        X.pop();
+        Y.pop();
       } else {
         // Сеть обучилась новому образу.
 
-        //
-        postMessage([
-          Commands.LOG, 
-          `Обучен, циклы: ${ep}, количество примеров: ${imagesSet.length}`
-        ]);
+        postMessage({
+          Command: Commands.TRAINRESULT,
+          result: true,
+          cyclesCount: trainCycle,
+          samplesCount: X.length
+        });
       }
 
       break;

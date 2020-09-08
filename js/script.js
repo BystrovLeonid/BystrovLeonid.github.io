@@ -1,21 +1,22 @@
 'use strict';
 
-//
+// Однослойный перцептрон:
+// 1 входной слой,
+// 0 скрытых слоёв,
+// 1 выходной слой.
 let olp = new Worker("js/olp.js");
 
-//
+// Обработка сообщений от перцетрона.
 olp.onmessage = e => {
 
-  //
-  let command = e.data[0];
-  let data = e.data.splice(1);
-
-  //
-  switch (command) {
+  switch (e.data.Command) {
     case Commands.TESTRESULT: {
 
       // Индекс распознанного образа.
-      let imageIndex = data;
+      let imageIndex =
+        e.data.result.data.indexOf(
+          Math.max(...e.data.result.data)
+        );
 
       //
       if (imageIndex > -1) {
@@ -35,10 +36,21 @@ olp.onmessage = e => {
       }
       break;
     }
+    case Commands.TRAINCYCLE: {
+
+      log.innerHTML = `[${e.data.cycle}] Ошибка: ${e.data.globalError}`;
+      break;
+    }
+    case Commands.TRAINRESULT: {
+      log.innerHTML =
+        e.data.result ?
+          `[${e.data.cyclesCount}] Обучен, количество примеров: ${e.data.samplesCount}` :
+          'Ошибка';
+      break;
+    }
     case Commands.LOG: {
 
-      //
-      log.innerHTML = data;
+      log.innerHTML = e.data.logText;
       break;
     }
   }
@@ -72,7 +84,7 @@ let result = document.getElementById('result');
 const W = 300;
 const H = 300;
 
-// Ширина и высота preview
+// Ширина и высота образа для отправки в перцептрон.
 const mW = 30;
 const mH = 30;
 
@@ -125,10 +137,12 @@ function blackAndWhite8bit() {
   // Проверка, нарисован ли образ.
   // Если все биты равны нулям то ничего не нарисовано.
   // Если что-то нарисовано, тогда вернуть данные.
-  for (let i = 0; i < mW * mH; i++) {
-    if (bw[i]) {
-      return bw;
-    }
+  if (bw.some(e => e > 0)) {
+    return new Matrix({
+      rows: 1,
+      cols: mW * mH,
+      data: bw
+    });
   }
 }
 
@@ -151,7 +165,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // Настройка.
 
   // Инициализировать перцетрон.
-  olp.postMessage([Commands.INITIALIZE, 30, 30, C.length]);
+  olp.postMessage({
+    Command: Commands.INITIALIZE,
+    Inputs: mW * mH,
+    Outputs: C.length
+  });
 
   // Добавить кнопки с символьными представлениями образов.
   for (let i = 0; i < C.length; i++) {
@@ -161,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Задать ширину и высоту окна рисования.
   draw.width = W;
-  draw.height = W;
+  draw.height = H;
 
   // Задать ширину и высоту preview.
   preview.width = mW;
@@ -178,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ctx.lineJoin = 'round';
 
 
-  // Нажатие кнопки мыши или касание, начать рисование линии.  
+  // Нажатие кнопки мыши и касания, начать рисование линии.  
   function startDraw() {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = lw;
@@ -190,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Рисует линию.
   function drawLine(x, y) {
+
     // Линия.
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -254,8 +273,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    olp.postMessage([Commands.TEST, bw]);
-    
+    // Отправить изображение в перцептрон.
+    olp.postMessage({
+      Command: Commands.TEST,
+      X: bw
+    });
+
   }); // Кнопка распознать.
 
 
@@ -289,8 +312,23 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    olp.postMessage([Commands.TRAIN, bw, imageIndex]);
+    // Матрица правильных ответов.
+    let y = new Matrix({
+      rows: 1,
+      cols: C.length
+    });
 
+    // Задать еденицу на правильный ответ, остальные нули.
+    y.data[imageIndex] = 1;
+
+    // Обучить перцептрон новому образу.
+    olp.postMessage({
+      Command: Commands.TRAIN,
+      X: bw,
+      Y: y
+    });
+
+    // Очистить оле рисования.
     clear();
 
   }); // Обучение.

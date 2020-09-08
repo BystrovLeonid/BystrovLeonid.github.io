@@ -1,15 +1,60 @@
 'use strict';
 
 class Matrix {
-  constructor(cols, rows, data) {
-    this.cols = cols;
-    this.rows = rows;
-    this.data = data ? data : new Array(cols * rows).fill(0);
+  constructor({ rows, cols, data, fill }) {
+
+    this.rows = +rows > 0 ? +rows : 0;
+    this.cols = +cols > 0 ? +cols : 0;
+
+    if (typeof fill === 'function') {
+      this.data =
+        data ?
+          data : new Array(rows * cols).fill(0).map(() => fill());
+    } else if (typeof fill === 'number') {
+      this.data =
+        data ?
+          data : new Array(rows * cols).fill(fill);
+    } else {
+      this.data =
+        data ?
+          data : new Array(rows * cols).fill(0);
+    }
   }
 }
 
+function substractMatrixFromMatrix(A, B) {
+
+  if (A.rows !== B.rows || A.cols !== B.cols) {
+    return;
+  }
+
+  let Result = new Matrix({ rows: A.rows, cols: A.cols });
+
+  Result.data.forEach((_, i) => Result.data[i] = A.data[i] - B.data[i]);
+
+  return Result;
+}
+
+function appendMatrixToMatrix(A, B) {
+
+  if (A.rows !== B.rows || A.cols !== B.cols) {
+    return;
+  }
+
+  let Result = new Matrix({ rows: A.rows, cols: A.cols });
+
+  Result.data.forEach((_, i) => Result.data[i] = A.data[i] + B.data[i]);
+
+  return Result;
+}
+
 function multiplyMatrixByNumber(A, N) {
-  A.data.forEach((e, i) => A.data[i] = e * N);
+  
+  let Result = new Matrix({ rows: A.rows, cols: A.cols });
+
+  Result.data.forEach((_, i) => Result.data[i] = A.data[i] * N);
+
+  return Result;
 }
 
 function multiplyMatrixByMatrix(
@@ -23,7 +68,7 @@ function multiplyMatrixByMatrix(
       return;
     }
 
-    let Result = new Matrix(A.cols, B.rows);
+    let Result = new Matrix({ rows: A.cols, cols: B.rows });
 
     for (let i = 0, r = 0; i < A.cols; i++) {
       for (let j = 0; j < B.rows; j++, r++) {
@@ -41,7 +86,7 @@ function multiplyMatrixByMatrix(
       return;
     }
 
-    let Result = new Matrix(A.rows, B.rows);
+    let Result = new Matrix({ rows: A.rows, cols: B.rows });
 
     for (let i = 0, r = 0; i < A.rows; i++) {
       for (let j = 0; j < B.rows; j++, r++) {
@@ -59,7 +104,7 @@ function multiplyMatrixByMatrix(
       return;
     }
 
-    let Result = new Matrix(A.cols, B.cols);
+    let Result = new Matrix({ rows: A.cols, cols: B.cols });
 
     for (let i = 0, r = 0; i < A.cols; i++) {
       for (let j = 0; j < B.cols; j++, r++) {
@@ -77,7 +122,7 @@ function multiplyMatrixByMatrix(
       return;
     }
 
-    let Result = new Matrix(A.rows, B.cols);
+    let Result = new Matrix({ rows: A.rows, cols: B.cols });
 
     for (let i = 0, r = 0; i < A.rows; i++) {
       for (let j = 0; j < B.cols; j++, r++) {
@@ -90,3 +135,12 @@ function multiplyMatrixByMatrix(
     return Result;
   }
 }
+
+
+// let A = new Matrix({ rows: 2, cols: 3, data: [1, 2, 3, 4, 5, 6] });
+// let B = new Matrix({ rows: 2, cols: 2, data: [5, 6, 7, 8] });
+
+// console.log(multiplyMatrixByMatrix(A, B, false, false));
+// console.log(multiplyMatrixByMatrix(A, B, true, false));
+// console.log(multiplyMatrixByMatrix(A, B, false, true));
+// console.log(multiplyMatrixByMatrix(A, B, true, true));
