@@ -49,7 +49,7 @@ function appendMatrixToMatrix(A, B) {
 }
 
 function multiplyMatrixByNumber(A, N) {
-  
+
   let Result = new Matrix({ rows: A.rows, cols: A.cols });
 
   Result.data.forEach((_, i) => Result.data[i] = A.data[i] * N);
@@ -135,12 +135,3 @@ function multiplyMatrixByMatrix(
     return Result;
   }
 }
-
-
-// let A = new Matrix({ rows: 2, cols: 3, data: [1, 2, 3, 4, 5, 6] });
-// let B = new Matrix({ rows: 2, cols: 2, data: [5, 6, 7, 8] });
-
-// console.log(multiplyMatrixByMatrix(A, B, false, false));
-// console.log(multiplyMatrixByMatrix(A, B, true, false));
-// console.log(multiplyMatrixByMatrix(A, B, false, true));
-// console.log(multiplyMatrixByMatrix(A, B, true, true));
