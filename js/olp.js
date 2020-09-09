@@ -40,6 +40,8 @@ onmessage = e => {
         fill: Math.random
       });
 
+      LearningRate = e.data.LearningRate ? +e.data.LearningRate : LearningRate;
+
       break;
     }
     case Commands.TEST: {

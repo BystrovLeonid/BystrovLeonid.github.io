@@ -18,7 +18,6 @@ olp.onmessage = e => {
           Math.max(...e.data.result.data)
         );
 
-      //
       if (imageIndex > -1) {
         // Показать распознанный образ.
         result.innerHTML = C[imageIndex];
@@ -31,7 +30,6 @@ olp.onmessage = e => {
         }, 1000);
       } else {
 
-        //
         result.innerHTML = '?';
       }
       break;
@@ -56,9 +54,9 @@ olp.onmessage = e => {
   }
 };
 
-// 
-// const C = Array(10).fill(0).map((_, i) => i);
-const C = ['&#9723;', '&#9711;', '&#9651;'];
+// Расознаваемые образы.
+const C = Array(10).fill(0).map((_, i) => i);
+// const C = ['&#9723;', '&#9711;', '&#9651;'];
 
 // Кнопки, нажатие на кнопку обучает перцептрон
 // конкретному образу.
@@ -97,8 +95,8 @@ let b = 0; // Bottom
 // Ширина линии рисования.
 const lw = 20;
 
-// Получить чёрно-белое изображение образа 8 бит.
-function blackAndWhite8bit() {
+// Получить бинарное чёрно-белое изображение образа, 1 бит на пиксел.
+function blackAndWhite1bit() {
 
   // Вырезать образ по прямоугольнику выделения и
   // скопировать уменьшенную копию в preview.
@@ -116,6 +114,7 @@ function blackAndWhite8bit() {
   let image = preview.getImageData(0, 0, mW, mH).data;
 
   // Массив данных чёрно-белое изображения.
+  // Содержит только нули и еденицы.
   let bw = [];
 
   // Берётся каждый 4 байт из изображения
@@ -206,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
   draw.addEventListener('mousedown', startDraw);
   draw.addEventListener('touchstart', startDraw);
 
-  // Рисует линию.
+  // Рисует линию в точку (x, y).
   function drawLine(x, y) {
 
     // Линия.
@@ -264,11 +263,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Синего цвета.
     selectionRect('#0000ee');
 
-    // Получить чёрно-белое изображение образа 8 бит.
-    let bw = blackAndWhite8bit();
+    // Получить чёрно-белое изображение образа 1 бит.
+    let x = blackAndWhite1bit();
 
-    //
-    if (bw === undefined) {
+    if (x === undefined) {
       log.textContent = 'Нарисуйте.';
       return;
     }
@@ -276,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Отправить изображение в перцептрон.
     olp.postMessage({
       Command: Commands.TEST,
-      X: bw
+      X: x
     });
 
   }); // Кнопка распознать.
@@ -303,11 +301,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Зелёным цветом.
     selectionRect('#00ee00');
 
-    // Получить чёрно-белое изображение образа 8 бит.
-    let bw = blackAndWhite8bit();
+    // Получить чёрно-белое изображение образа 1 бит.
+    let x = blackAndWhite1bit();
 
     // 
-    if (bw === undefined) {
+    if (x === undefined) {
       log.textContent = 'Нарисуйте.';
       return;
     }
@@ -324,11 +322,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Обучить перцептрон новому образу.
     olp.postMessage({
       Command: Commands.TRAIN,
-      X: bw,
+      X: x,
       Y: y
     });
 
-    // Очистить оле рисования.
+    // Очистить поле рисования.
     clear();
 
   }); // Обучение.
