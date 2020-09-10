@@ -33,12 +33,22 @@ onmessage = e => {
   switch (e.data.Command) {
     case Commands.INITIALIZE: {
 
-      // Инициализация весов случайными значениями от 0 до 1.
-      Weights = new Matrix({
-        rows: e.data.Inputs,
-        cols: e.data.Outputs,
-        fill: Math.random
-      });
+      let xhr = new XMLHttpRequest();
+      xhr.open("GET", "weights.json");
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Веса успешно получены с сервера, обучать не надо.
+          Weights = JSON.parse(xhr.responseText);
+        } else {
+          // Инициализация весов случайными значениями от 0 до 1.
+          Weights = new Matrix({
+            rows: e.data.Inputs,
+            cols: e.data.Outputs,
+            fill: Math.random
+          });
+        }
+      };
+      xhr.send();
 
       LearningRate = e.data.LearningRate ? +e.data.LearningRate : LearningRate;
 
