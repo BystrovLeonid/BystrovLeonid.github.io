@@ -1,18 +1,19 @@
 * {
- margin: 0;
- padding: 0;
- outline: none;
- font-family: sans-serif;
- box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  font-family: 'DejaVu Sans Mono', sans-serif;
+  box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100vw;
   height: 100vh;
 }
 
 html {
- background-color: #eeeeee;
+  background-color: #eeeeee;
 }
 
 body {
@@ -22,67 +23,159 @@ body {
   flex-direction: column;
 }
 
-#draw {
-  position: relative;
+button {
   border: none;
+  cursor: pointer;
+  background-color: transparent;
 }
 
-.buttons {
+.container {
   display: flex;
+  align-items: center;
   justify-content: center;
   flex-direction: row;
-  flex-wrap: wrap;
 }
 
-#result {
+.draw {
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 72px;
-  height: 100px;
-  width: 50px;
+  flex-direction: column;
 }
 
-#button-box {
-  max-width: 560px;
-}
-
-#button-box button {
-  width: 50px;
-  height: 50px;
-}
-
-#button-box button:active {
-  border: 1px solid green;
-}
-
-#recognize,
-#clear {
-  width: 200px;
-  height: 50px;
-}
-
-#log {
-  padding: 16px;
-}
-
-button {
+.draw-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  flex-direction: row;
+  padding: 10px;
+  width: 100%;
+}
+
+.draw-button {
   font-size: 24px;
-  border: 1px solid transparent;
-  transition: border-color 0.2s;
-  margin: 3px;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 128px;
+  padding: 50px;
+  height: 100%;
+}
+
+.buttons-images {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-direction: row;
+}
+
+.button-image {
+  font-size: 64px;
+  margin: 0 10px;
+
+  transition: color 0.3s;
+}
+
+.button-image:hover {
+  color: green;
+}
+
+.item-image {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bar {
+  display: block;
+  width: 90%;
+  height: 0;
+  background-color: black;
+  margin: 1px;
+  transition: height 0.3s;
+}
+
+.results {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.information {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border: 1px solid black;
+  padding-top: 2px;
+}
+
+.positive,
+.negative,
+.status {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+}
+
+.positive {
+  align-items: flex-end;
+  height: 45%;
+}
+
+.status {
+  align-items: center;
+  height: calc(10% - 2px);
+}
+
+.negative {
+  align-items: flex-start;
+  height: 45%;
+}
+
+
+.positiveBar,
+.negativeBar {
+  height: 0;
+}
+
+.neuronResponseNormalized {
+  width: 90%;
+  display: block;
+  text-align: center;
 }
 
 a {
-  color: black;
   text-decoration: none;
+  color: black;
+  padding: 10px;
 }
 
-@media screen and (max-width: 560px) {
-  #button-box {
-    width: 320px;
+@media screen and (max-width: 768px) {
+
+  html,
+  body {
+    height: auto;
+    padding-top: 5px;
+  }
+
+  .container {
+    flex-direction: column;
+  }
+
+  .result {
+    height: auto;
+    padding: 0;
+  }
+
+  .information {
+    height: 320px;
   }
 }

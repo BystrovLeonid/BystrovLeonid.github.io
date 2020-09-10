@@ -1,5 +1,9 @@
 'use strict';
 
+// Распознаваемые образы.
+// const C = Array(10).fill(0).map((_, i) => i);
+const C = ['&#9723;', '&#9711;', '&#9651;'];
+
 // Однослойный перцептрон:
 // 1 входной слой,
 // 0 скрытых слоёв,
@@ -22,12 +26,31 @@ olp.onmessage = e => {
         // Показать распознанный образ.
         result.innerHTML = C[imageIndex];
 
-        // Подсветить соответствующую кнопку.
-        teach.children[imageIndex].style.borderColor = '#0000ee';
+        let max = Math.max(...e.data.result.data);
+        let min = Math.min(...e.data.result.data);
 
-        setTimeout(() => {
-          teach.children[imageIndex].style.borderColor = 'transparent';
-        }, 1000);
+        let m = Math.max(Math.abs(max), Math.abs(min));
+
+        for (let i = 0; i < C.length; i++) {
+          let v = e.data.result.data[i] / m;
+
+          if (v > 0) {
+            positiveBar[i].style.height = `${(v) * 100}%`;
+            negativeBar[i].style.height = '';
+          } else {
+            positiveBar[i].style.height = '';
+            negativeBar[i].style.height = `${(-v) * 100}%`;
+          }
+
+          neuronResponseNormalized[i].innerHTML = (v).toFixed(2);
+        }
+
+        imageButton[imageIndex].style.color = 'blue';
+
+        setTimeout((i) => {
+          imageButton[i].style.color = '';
+        }, 1000, imageIndex);
+
       } else {
 
         result.innerHTML = '?';
@@ -42,7 +65,7 @@ olp.onmessage = e => {
     case Commands.TRAINRESULT: {
       log.innerHTML =
         e.data.result ?
-          `[${e.data.cyclesCount}] Обучен, количество примеров: ${e.data.samplesCount}` :
+          `[${e.data.cyclesCount}] Обучен, примеры: ${e.data.samplesCount}` :
           'Ошибка';
       break;
     }
@@ -54,9 +77,11 @@ olp.onmessage = e => {
   }
 };
 
-// Расознаваемые образы.
-const C = Array(10).fill(0).map((_, i) => i);
-// const C = ['&#9723;', '&#9711;', '&#9651;'];
+
+let negativeBar = [];
+let neuronResponseNormalized = [];
+let positiveBar = [];
+let imageButton = [];
 
 // Кнопки, нажатие на кнопку обучает перцептрон
 // конкретному образу.
@@ -170,11 +195,27 @@ document.addEventListener('DOMContentLoaded', function () {
     Outputs: C.length
   });
 
+
+  // Контейнеры для столбцов диаграммы
+  // и нормализованного ответа сети.
+  let pd = document.getElementById('p');
+  let sd = document.getElementById('s');
+  let nd = document.getElementById('n');
+
   // Добавить кнопки с символьными представлениями образов.
   for (let i = 0; i < C.length; i++) {
     teach.innerHTML +=
-      `<button data-image-index="${i}">${C[i]}</button>`;
+      `<button data-image-index="${i}" class="button-image">${C[i]}</button>`;
+    pd.innerHTML += `<span class="bar positiveBar"></span>`;
+    sd.innerHTML += `<span class="neuronResponseNormalized"></span>`;
+    nd.innerHTML += `<span class="bar negativeBar"></span>`;
   }
+
+  positiveBar = document.querySelectorAll('.positiveBar');
+  neuronResponseNormalized = document.querySelectorAll('.neuronResponseNormalized');
+  negativeBar = document.querySelectorAll('.negativeBar');
+  imageButton = document.querySelectorAll('.button-image');
+
 
   // Задать ширину и высоту окна рисования.
   draw.width = W;
@@ -204,6 +245,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   draw.addEventListener('mousedown', startDraw);
   draw.addEventListener('touchstart', startDraw);
+
+  draw.addEventListener('touchstart', () => {
+    document.body.style.position = 'fixed';
+  });
+  draw.addEventListener('touchend', () => {
+    document.body.style.position = '';
+  });
 
   // Рисует линию в точку (x, y).
   function drawLine(x, y) {
@@ -241,16 +289,27 @@ document.addEventListener('DOMContentLoaded', function () {
   // };
 
 
-  // Очистка области рисования.
   function clear() {
-    result.textContent = '_';
-
     ctx.fillRect(0, 0, W, H);
 
     l = W;
     r = 0;
     t = H;
     b = 0;
+
+    positiveBar.forEach(e => {
+      e.style.height = '';
+      e.innerHTML = '';
+    });
+    neuronResponseNormalized.forEach(e => {
+      e.innerHTML = '';
+    });
+    negativeBar.forEach(e => {
+      e.style.height = '';
+      e.innerHTML = '';
+    });
+    result.innerHTML = '&nbsp;';
+    log.innerHTML = '&nbsp;';
   }
 
   // Кнопка очистить.
