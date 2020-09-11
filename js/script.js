@@ -185,7 +185,7 @@ function selectionRect(lineColor) {
 }
 
 //
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
   // Настройка.
 
   // Инициализировать перцетрон.
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // draw.onmouseup = draw.ontouchend = function () {
+  // draw.onmouseup = draw.ontouchend = () => {
   //   selectionRect('#00eeee');
   // };
 
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('clear').addEventListener('click', clear);
 
   // Кнопка распознать.
-  document.getElementById('recognize').addEventListener('click', function () {
+  document.getElementById('recognize').addEventListener('click', () => {
 
     // Показать прямоугольник выделения.
     // Синего цвета.
